@@ -9,19 +9,26 @@ public class RocketShip : MonoBehaviour
     private Rigidbody _rb;
     private static AudioSource _audio;
     private GameController _gc;
+    private HealthBar _healthBar;
     
     [SerializeField] private float thrust;
     [SerializeField] private float rotationThrust;
     [SerializeField] private AudioClip engine, wallHit, success;
     [SerializeField] private ParticleSystem engineParticles, explosionParticles;
-
+    [SerializeField] private int maxHealth = 100;
+    
     private bool isAlive = true;
+    private int currentHealth;
+    
     
     void Start()
     {
         _rb = GetComponent<Rigidbody>();
         _audio = GetComponent<AudioSource>();
         _gc = FindObjectOfType<GameController>();
+        _healthBar = FindObjectOfType<HealthBar>();
+        currentHealth = maxHealth;
+        _healthBar.SetMaxHealth(maxHealth);
     }
 
     void Update()
@@ -49,24 +56,36 @@ public class RocketShip : MonoBehaviour
         if (!isAlive || !_gc.collisions) {return;}
         switch (other.gameObject.tag)
         {
-            case "Respawn":
-                StopRocket(wallHit);
-                explosionParticles.Play();
-                _gc.ResetGame();
+            case "Damage":
+                AudioSource.PlayClipAtPoint(wallHit, Camera.main.gameObject.transform.position);
+                TakeDamage(20);
                 break;
             case "Finish":
-                StopRocket(success);
+                AudioSource.PlayClipAtPoint(success, Camera.main.gameObject.transform.position);
+                StopRocket();
                 _gc.NextLevel();
                 break;
         }
     }
 
-    private void StopRocket(AudioClip audioClip)
+    private void TakeDamage(int dmg)
+    {
+        currentHealth -= dmg;
+        _healthBar.SetHealth(currentHealth);
+        if (currentHealth <= 0)
+        {
+            StopRocket();
+            explosionParticles.Play();
+            FindObjectOfType<ShakeCam>().ShakeCamera();
+            _gc.ResetGame();
+        }
+    }
+    
+    private void StopRocket()
     {
         isAlive = false;
         _audio.Stop();
         engineParticles.Stop();
-        AudioSource.PlayClipAtPoint(audioClip, Camera.main.gameObject.transform.position);
     }
 
     private void LateUpdate()
