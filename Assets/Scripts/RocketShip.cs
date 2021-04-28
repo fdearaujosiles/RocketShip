@@ -7,17 +7,53 @@ public class RocketShip : MonoBehaviour
 {
     private Rigidbody _rb;
     private AudioSource _audio;
+    
     [SerializeField] private float thrust;
     [SerializeField] private float rotationThrust;
+
+    private GameController _gc;
+    private bool isAlive = true;
+    
     void Start()
     {
-        _rb = gameObject.GetComponent<Rigidbody>();
-        _audio = gameObject.GetComponent<AudioSource>();
+        _rb = GetComponent<Rigidbody>();
+        _gc = FindObjectOfType<GameController>();
+        _audio = GetComponent<AudioSource>();
     }
 
     void Update()
     {
-        MoveRocket();
+        if(isAlive) {MoveRocket();}
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!isAlive || !_gc.collisions) {return;}
+        switch (other.gameObject.tag)
+        {
+            case "Fuel":
+                Debug.Log("Fuel");
+                Destroy(other.gameObject);
+                break;
+            case "Ring":
+                other.gameObject.GetComponent<Ring>().PassedThrough();
+                break;
+        }
+    }
+
+    private void OnCollisionEnter(Collision other)
+    {
+        if (!isAlive || !_gc.collisions) {return;}
+        switch (other.gameObject.tag)
+        {
+            case "Respawn":
+                isAlive = false;
+                _gc.ResetGame();
+                break;
+            case "Finish":
+                _gc.NextLevel();
+                break;
+        }
     }
 
     private void LateUpdate()
