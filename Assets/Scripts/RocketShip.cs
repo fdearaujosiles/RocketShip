@@ -1,24 +1,27 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using UnityEngine;
 
 public class RocketShip : MonoBehaviour
 {
     private Rigidbody _rb;
-    private AudioSource _audio;
+    private static AudioSource _audio;
+    private GameController _gc;
     
     [SerializeField] private float thrust;
     [SerializeField] private float rotationThrust;
+    [SerializeField] private AudioClip engine, wallHit, success;
+    [SerializeField] private ParticleSystem engineParticles, explosionParticles;
 
-    private GameController _gc;
     private bool isAlive = true;
     
     void Start()
     {
         _rb = GetComponent<Rigidbody>();
-        _gc = FindObjectOfType<GameController>();
         _audio = GetComponent<AudioSource>();
+        _gc = FindObjectOfType<GameController>();
     }
 
     void Update()
@@ -47,13 +50,23 @@ public class RocketShip : MonoBehaviour
         switch (other.gameObject.tag)
         {
             case "Respawn":
-                isAlive = false;
+                StopRocket(wallHit);
+                explosionParticles.Play();
                 _gc.ResetGame();
                 break;
             case "Finish":
+                StopRocket(success);
                 _gc.NextLevel();
                 break;
         }
+    }
+
+    private void StopRocket(AudioClip audioClip)
+    {
+        isAlive = false;
+        _audio.Stop();
+        engineParticles.Stop();
+        AudioSource.PlayClipAtPoint(audioClip, Camera.main.gameObject.transform.position);
     }
 
     private void LateUpdate()
@@ -71,14 +84,16 @@ public class RocketShip : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.Space))
         {
+            engineParticles.Play();
             _rb.AddRelativeForce(Vector3.up * (thrust * Time.deltaTime));
             if (!_audio.isPlaying)
             {
-                _audio.Play();
+                _audio.PlayOneShot(engine);
             }
         }
         else
         {
+            engineParticles.Stop();
             _audio.Stop();
         }
     }
